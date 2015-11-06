@@ -1,0 +1,88 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+
+
+#! /bin/bash
+
+
+PROTON_ROOT=${SHACKLETON_ROOT}/libs/qpid-proton
+
+
+INCLUDES="-I${PROTON_ROOT}/examples/cpp  -I${PROTON_ROOT}/examples/include -I${PROTON_ROOT}/proton-c/include -I${PROTON_ROOT}/proton-c/bindings/cpp/include -I${PROTON_ROOT}/tests/tools/apps/c"
+
+WARNINGS="-Werror -Wall -pedantic-errors -Wno-format -Wno-variadic-macros"
+
+OPTO=-O3
+
+
+
+/usr/bin/cc                           \
+  -Wno-unused-function                \
+  -DPN_HAS_BOOST=1                    \
+  ${OPTO}                             \
+  -std=c99                            \
+  -DNDEBUG                            \
+  ${INCLUDES}                         \
+  -I${PROTON_ROOT}/examples/c/include \
+  ${WARNINGS}                         \
+  -c ./resource_reporter.c            \
+  -o ./resource_reporter.o 
+
+
+
+for TARGET in reactor-recv reactor-send
+do
+  echo " "
+  echo " "
+  echo " "
+  echo "target: ${TARGET}"
+  echo "compiling..."
+  /usr/bin/cc            \
+    -Wno-unused-function \
+    -DPN_HAS_BOOST=1     \
+    ${OPTO}              \
+  -std=c99                            \
+    -DNDEBUG             \
+    ${INCLUDES}          \
+    -I${PROTON_ROOT}/examples/c/include \
+    ${WARNINGS}          \
+    -c ./${TARGET}.c     \
+    -o ./${TARGET}.o 
+
+
+  echo "linking..."
+  /usr/bin/cc          \
+    ${OPTO}            \
+    -DNDEBUG           \
+    /home/mick/shackleton/libs/qpid-proton/build/tests/tools/apps/c/CMakeFiles/reactor-recv.dir/msgr-common.c.o \
+    ./resource_reporter.o \
+    ./${TARGET}.o  -o ${TARGET} \
+    -rdynamic                   \
+    ${PROTON_ROOT}/build/proton-c/libqpid-proton.so.3.0.0                  \
+    -lssl -lcrypto -lsasl2 -Wl,-rpath,${PROTON_ROOT}/build/proton-c/bindings/cpp:${PROTON_ROOT}/build/proton-c
+
+
+  echo "built ${TARGET} ."
+  echo " "
+  echo " "
+  echo " "
+done
+
+

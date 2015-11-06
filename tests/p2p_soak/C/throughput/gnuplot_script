@@ -1,0 +1,77 @@
+#
+# Licensed to the Apache Software Foundation (ASF) under one
+# or more contributor license agreements.  See the NOTICE file
+# distributed with this work for additional information
+# regarding copyright ownership.  The ASF licenses this file
+# to you under the Apache License, Version 2.0 (the
+# "License"); you may not use this file except in compliance
+# with the License.  You may obtain a copy of the License at
+#
+#   http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing,
+# software distributed under the License is distributed on an
+# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+# KIND, either express or implied.  See the License for the
+# specific language governing permissions and limitations
+# under the License.
+#
+
+
+set autoscale
+set xlabel "messages sent (millions)"
+set terminal jpeg size 1024,300
+
+
+#=================================================================
+#           receiver
+#=================================================================
+
+# throughput ------------------------------------------------
+set title "reactor-recv throughtput\nmeasured every million messages"
+set ylabel "messages per second"
+set yrange [0:500000]
+set output "./temp/receiver_throughput.jpg"
+plot "./temp/receiver_throughput" using 2 title 'throughput' axes x1y1 with linespoints
+
+# memory ------------------------------------------------
+set title "reactor-recv memory usage"
+set ylabel "kilobytes"
+set yrange [0:15000]
+set output "./temp/receiver_memory.jpg"
+plot "./temp/receiver_mem" using 2 title 'memory'  axes x1y1 with linespoints
+
+# cpu ------------------------------------------------
+set title "reactor-recv cpu usage"
+set ylabel "CPU usage (percent)"
+set yrange [0:110]
+set output "./temp/receiver_cpu.jpg"
+plot "./temp/receiver_cpu" using 2 title 'cpu'  axes x1y1 with linespoints
+
+
+
+#=================================================================
+#           sender
+#=================================================================
+
+# throughput ------------------------------------------------
+set title "reactor-send throughtput\nmeasured every million messages"
+set ylabel "messages per second"
+set yrange [0:500000]
+set output "./temp/sender_throughput.jpg"
+plot "./temp/sender_throughput" using 2 title 'seconds' axes x1y1 with linespoints
+
+# memory ------------------------------------------------
+set title "reactor-send memory usage"
+set ylabel "kilobytes"
+set yrange [0:15000]
+set output "./temp/sender_memory.jpg"
+plot "./temp/sender_mem" using 2 title 'memory'  axes x1y1 with linespoints
+
+# cpu ------------------------------------------------
+set title "reactor-send cpu usage"
+set ylabel "CPU usage (percent)"
+set yrange [0:110]
+set output "./temp/sender_cpu.jpg"
+plot "./temp/sender_cpu" using 2 title 'cpu'  axes x1y1 with linespoints
+
