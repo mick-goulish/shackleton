@@ -1,0 +1,22 @@
+#! /bin/csh
+
+set PROJECT=`pwd`
+set PROJECT=$PROJECT:t
+
+set FLAGS=
+set DEFS=
+set OPTO=-g
+
+
+rm -f *.o *.a >& /dev/null
+echo Making $PROJECT ---------------------------------------------------
+foreach file (*.c)
+  echo compiling $file ------------------------------------------------
+  g++ $FLAGS $DEFS         \
+      $OPTO                \
+      -I.                  \
+      -c $file 
+end
+echo linking ------------------------------------------------------
+ar -rv lib$PROJECT.a *.o
+rm -f *.o

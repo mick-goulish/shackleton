@@ -1,0 +1,37 @@
+#! /bin/bash
+
+CC=g++
+
+PROJECT=`pwd`
+PROJECT=${PROJECT##*/}
+echo Making $PROJECT =================================================
+
+FLAGS="-pedantic"
+DEFS=
+OPTO=-g
+
+for file in *.c
+do
+  echo compiling $file --------------------------------------------
+  $CC                           \
+    $FLAGS                      \
+    $DEFS                       \
+    -I/home/mick/utils/mjson    \
+    $OPTO                       \
+    -c                          \
+    $file
+done
+
+echo Linking ====================================================
+
+$CC                           \
+  -o $PROJECT                 \
+  $PROJECT.o                  \
+  -L/home/mick/utils/mjson    \
+  -lmjson
+
+rm *.o
+
+echo -e "Done ================================\n\n\n\n"
+
+
