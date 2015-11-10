@@ -19,6 +19,7 @@
 
 
 
+
 #! /bin/bash
 
 
@@ -66,7 +67,7 @@ mkdir -p ${RESULT_ROOT}/sender
 
 
 # In case it's already there, during testing...
-rm -f ${RESULT_ROOT}/receiver/all_results
+rm -f ${RESULT_ROOT}/receiver/tp_results.txt
 
 #--------------------------
 # test parameters
@@ -144,17 +145,17 @@ do
   # And keep the whole report around, in a list of reports.
   #-------------------------------------------------------------
   report=`cat ${RESULT_ROOT}/receiver/report.txt`
-  echo "msg_size: ${MSG_SIZE}  ${report}"  >> ${RESULT_ROOT}/receiver/all_reports
+  echo "msg_size: ${MSG_SIZE}  ${report}"  >> ${RESULT_ROOT}/receiver/tp_report.txt
 
   report=`cat ${RESULT_ROOT}/sender/report.txt`
-  echo "msg_size: ${MSG_SIZE}  ${report}"  >> ${RESULT_ROOT}/sender/all_reports
+  echo "msg_size: ${MSG_SIZE}  ${report}"  >> ${RESULT_ROOT}/sender/tp_report.txt
 done
 
 
 
 # receiver text processing --------------------------------------------
 cp ${RESULT_ROOT}/receiver/all_results  ./recv_all_results
-cp ${RESULT_ROOT}/receiver/all_reports  ./recv_all_reports
+cp ${RESULT_ROOT}/receiver/tp_report.txt  ./recv_all_reports
 
 cat recv_all_results  | awk '{print $1 " * " $2}' | bc >  bytes_per_second
 cat recv_all_reports  | awk '{print $2 " " $6}' >  recv_msg_size_vs_cpu
@@ -164,7 +165,7 @@ paste recv_all_results bytes_per_second | awk '{print $1 " " $3}' > message-size
 
 
 # sender text processing --------------------------------------------
-cp ${RESULT_ROOT}/sender/all_reports  ./send_all_reports
+cp ${RESULT_ROOT}/sender/tp_report.txt  ./send_all_reports
 
 cat send_all_reports  | awk '{print $2 " " $6}' >  send_msg_size_vs_cpu
 
