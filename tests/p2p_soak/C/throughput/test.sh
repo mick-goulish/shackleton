@@ -122,7 +122,8 @@ cp ${RESULT_ROOT}/receiver/tp_throughput ./temp/receiver_throughput
 #--------------------------------------------------------------
 #  sender report text processing
 #--------------------------------------------------------------
-SEND_REPORT=${RESULT_ROOT}/sender/report.txt
+mv ${RESULT_ROOT}/sender/report.txt ${RESULT_ROOT}/sender/tp_report.txt
+SEND_REPORT=${RESULT_ROOT}/sender/tp_report.txt
 
 cat ${SEND_REPORT}  |  awk '{print $2 " " $4}' > ${RESULT_ROOT}/sender/tp_cpu
 cat ${SEND_REPORT}  |  awk '{print $2 " " $6}' > ${RESULT_ROOT}/sender/tp_mem
