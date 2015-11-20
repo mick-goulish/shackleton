@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<!--
+ -
+ - Licensed to the Apache Software Foundation (ASF) under one
+ - or more contributor license agreements.  See the NOTICE file
+ - distributed with this work for additional information
+ - regarding copyright ownership.  The ASF licenses this file
+ - to you under the Apache License, Version 2.0 (the
+ - "License"); you may not use this file except in compliance
+ - with the License.  You may obtain a copy of the License at
+ -
+ -   http://www.apache.org/licenses/LICENSE-2.0
+ -
+ - Unless required by applicable law or agreed to in writing,
+ - software distributed under the License is distributed on an
+ - "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ - KIND, either express or implied.  See the License for the
+ - specific language governing permissions and limitations
+ - under the License.
+ -
+-->
+<html ng-app="qpid.proton.timings">
+<head>
+    <meta charset="UTF-8">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" type="text/css"/>
+    <link href="perf3.css" rel="stylesheet">
+
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-animate.js"></script>
+    <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.14.3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ngStorage/0.3.6/ngStorage.min.js"></script>
+
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/queue.v1.min.js"></script>
+    <script src="http://d3js.org/topojson.v0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
+
+    <script src="perf3.js"></script>
+</head>
+
+<body ng-controller="QPTPController">
+
+    <div class="perf-header">
+        <h2>Qpid Proton Nightly Test Results</h2>
+    </div>
+
+    <uib-tabset class="chart-tabs">
+        <!-- the charts tab shows the charts for the selected date/test/language/client -->
+        <uib-tab title="View the charts for a date" heading="Charts" ng-click="saveTabState(true)" active="tabState.charts">
+            <!-- dark bar that has the date/test/language/client dropdown lists -->
+            <div class="choose-options">
+                <h4 class="date-prompt">Date</h4>
+                <div class="date-input">
+                    <p class="input-group">
+                        <input type="text" class="form-control" uib-datepicker-popup="{{format}}"
+                               ng-model="selectors.date" is-open="status.opened" min-date="minDate" max-date="maxDate"
+                               datepicker-options="dateOptions" show-button-bar="false"
+                               date-disabled="disabled(date, mode)" ng-required="true" close-text="Close" />
+              <span class="input-group-btn">
+                <button type="button" class="btn btn-default"
+                        ng-click="open($event)"><i class="glyphicon glyphicon-calendar"></i></button>
+              </span>
+                    </p>
+                </div>
+
+                <!-- repeat for the test, language, and client selects -->
+                <div class="select-container" ng-repeat="(name, info) in selectors" ng-if="name != 'date'">
+                    <h4 class="chart-prompt">{{info.prompt}}</h4>
+                    <div class="chart-input">
+                        <select ng-model="info.curVal" ng-options="test for test in info.allVals"></select>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- for the above selected fields, show the charts -->
+            <div class="slides">
+                <div class="available-charts-container">
+                    <!-- this alert only gets shown if there was an error loading the json file -->
+                    <uib-alert type="{{alert.type}}" ng-if="alert.type">{{alert.msg}}</uib-alert>
+                </div>
+                <!-- for each selected chart from the above buttons, show the chart and the chart's name -->
+                <div class="slide-container cloak" ng-repeat="chart in charts">
+                    <div>
+                        <div align="center">
+                            <h4>{{chart.title}}</h4>
+                        </div>
+                        <div id="{{chart.id}}" class="c3chart"></div>
+                        <label title="Zoom {{chart.zoomed ? 'in' : 'out'}}" class="zoom pin btn btn-primary show-on-hover" ng-model="chart.zoomed" ng-click="zoomChart(chart, $event)"
+                               uib-btn-checkbox><i ng-class="chart.zoomed ? 'glyphicon-zoom-in' : 'glyphicon-zoom-out'" class="glyphicon"></i>
+                        </label>
+                        <label title="Click to {{chart.pinned?'remove from':'add to'}} the saved page" class="pin btn btn-primary show-on-hover" ng-model="chart.pinned" ng-click="pinChart(chart, $event)"
+                               uib-btn-checkbox><i class="glyphicon glyphicon-pushpin"></i>
+                        </label>
+                        <div align='center'><h4>{{chart.xLabel}}</h4></div>
+                    </div>
+                </div>
+            </div>
+        </uib-tab>
+
+        <!-- the saved tab shows the contents of the pinned list -->
+        <uib-tab title="{{pinned.length?'View the saved charts':'Save charts and then view them here'}}" class="saved {{pinned.length ? 'pinned' : ''}}" ng-click="saveTabState(false)" active="tabState.saved">
+            <uib-tab-heading>
+                <i class="glyphicon glyphicon-pushpin"></i> Saved Charts
+            </uib-tab-heading>
+            <div class="slides pin">
+                <!-- for each pinned chart, show the chart and the chart's info -->
+                <div class="slide-container cloak" ng-repeat="chart in pinned">
+                    <div>
+                        <div class="choose-options">
+                            <span class="chart-prompt">{{chart.date | date:'yyyy-MM-dd'}}</span>
+                            <span class="chart-prompt">{{chart.test}}</span>
+                            <span class="chart-prompt">{{chart.language}}</span>
+                            <span class="chart-prompt">{{chart.client}}</span>
+                            <span class="chart-prompt">{{translateId(chart.id)}}</span>
+                        </div>
+                        <div>
+                            <div id="{{chart.uuid}}" class="c3chart"></div>
+                        </div>
+                        <label title="Zoom {{chart.zoomed ? 'in' : 'out'}}" class="zoom pin btn btn-primary show-on-hover" ng-model="chart.zoomed" ng-click="zoomChart(chart, $event)"
+                               uib-btn-checkbox><i ng-class="chart.zoomed ? 'glyphicon-zoom-in' : 'glyphicon-zoom-out'" class="glyphicon"></i>
+                        </label>
+                        <label title="Click to remove from the charts page" class="pin btn btn-primary" ng-model="chart.pinned" ng-click="pinChart(chart)"
+                               uib-btn-checkbox><i class="glyphicon glyphicon-pushpin"></i> Remove</label>
+                    </div>
+                </div>
+                <!-- only shown if there are no pinned charts -->
+                <div class="empty-pinned" ng-if="pinned.length == 0">
+                    <uib-alert type="warning">There are no saved charts.
+                        To add a chart, click on a
+                        <label class="pin static btn btn-primary"><i class="glyphicon glyphicon-pushpin"></i></label>
+                        button on the Charts page.</uib-alert>
+                </div>
+            </div>
+        </uib-tab>
+    </uib-tabset>
+
+</body>
+</html>

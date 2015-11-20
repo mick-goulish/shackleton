@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<!--
+ -
+ - Licensed to the Apache Software Foundation (ASF) under one
+ - or more contributor license agreements.  See the NOTICE file
+ - distributed with this work for additional information
+ - regarding copyright ownership.  The ASF licenses this file
+ - to you under the Apache License, Version 2.0 (the
+ - "License"); you may not use this file except in compliance
+ - with the License.  You may obtain a copy of the License at
+ -
+ -   http://www.apache.org/licenses/LICENSE-2.0
+ -
+ - Unless required by applicable law or agreed to in writing,
+ - software distributed under the License is distributed on an
+ - "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ - KIND, either express or implied.  See the License for the
+ - specific language governing permissions and limitations
+ - under the License.
+ -
+-->
+<html ng-app="qpid.proton.timings">
+<head>
+    <meta charset="UTF-8">
+
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.css" type="text/css"/>
+    <link href="perf3.css" rel="stylesheet">
+
+    <script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular.js"></script>
+    <script src="//ajax.googleapis.com/ajax/libs/angularjs/1.4.7/angular-animate.js"></script>
+    <script src="//angular-ui.github.io/bootstrap/ui-bootstrap-tpls-0.14.3.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ngStorage/0.3.6/ngStorage.min.js"></script>
+
+    <script src="http://d3js.org/d3.v3.min.js"></script>
+    <script src="http://d3js.org/queue.v1.min.js"></script>
+    <script src="http://d3js.org/topojson.v0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/c3/0.4.10/c3.min.js"></script>
+
+    <script src="perf3.js"></script>
+</head>
+
+<body ng-controller="QPTPController">
+
+            <div class="slides" ng-init="overrideTest = 'p2p_soak'; overrideClient = 'receiver'">
+                <div class="available-charts-container">
+                    <!-- this alert only gets shown if there was an error loading the json file -->
+                    <uib-alert type="{{alert.type}}" ng-if="alert.type">{{alert.msg}}</uib-alert>
+                </div>
+                <!-- only show the chart(s) with .dash==true for an embeded page -->
+                <div class="slide-container cloak" ng-repeat="chart in charts" ng-if="chart.dash">
+                    <div>
+                        <div align="center">
+                            <h4>{{chart.title}}</h4>
+                        </div>
+                        <div id="{{chart.id}}" class="c3chart" style="width:800px"></div>
+                        <!-- the zoom button  -->
+                        <label title="Zoom {{chart.zoomed ? 'in' : 'out'}}" class="zoom pin dash btn btn-primary show-on-hover" ng-model="chart.zoomed" ng-click="zoomChart(chart, $event)"
+                               uib-btn-checkbox><i ng-class="chart.zoomed ? 'glyphicon-zoom-in' : 'glyphicon-zoom-out'" class="glyphicon"></i>
+                        </label>
+                        <div align='center'><h4>{{chart.xLabel}}</h4></div>
+                    </div>
+                </div>
+            </div>
+
+
+</body>
+</html>

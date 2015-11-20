@@ -1,0 +1,206 @@
+    .perf-header {
+        text-align: center;
+    }
+    .choose-options {
+        margin: 0 2em 2em 2em;
+        border-top: 1px solid #222;
+        border-bottom: 1px solid #222;
+        background-color: rgb(68, 68, 68);
+        box-shadow: 0 5px 5px #cccccc;
+        padding: 1em;
+
+        display: flex;
+        justify-content: center; /* align horizontal */
+        align-items: center; /* vertical */
+    }
+    .choose-options select {
+        background: none;
+        font-size: 1.2em;
+        background-color: white;
+        border-radius: 4px;
+    }
+	.slides.pin .choose-options {
+		margin-left: 0;
+		margin-right: 0;
+	}
+	.slides.pin .slide-container>div {
+        border: 1px solid #222;
+        padding-bottom: 1em;
+	}
+    .date-input {
+        width: 13em;
+    }
+    .date-input .form-control {
+        font-size: 1.1em;
+    }
+    .date-prompt, .chart-prompt {
+        padding-right: 0.5em;
+        color: white;
+        font-weight: bold;
+    }
+    .choose-options p {
+        margin: 0;
+    }
+    .chart-prompt {
+        padding-left: 2em;
+    }
+    .chart-input select:not([size]):not([multiple]) {
+        height: 34px;
+    }
+    .slide-container {
+		padding: 1em 0;
+		position: relative; /* so child elements can be positioned relative to this container */
+	}
+    .slide-container img {
+        max-width: 95vw;
+    }
+    .slide-container>div {
+        position: relative;
+    }
+    .slide-container, .available-charts-container, .empty-pinned, .select-container {
+        display: flex;
+        justify-content: center; /* align horizontal */
+        align-items: center; /* vertical */
+    }
+    /* uncomment to only show the Save button when hovering over chart
+	.slide-container .show-on-hover {
+		display: none;
+	}
+	*/
+	.slide-container .show-on-hover.active {
+		display: inline-block;
+	}
+	.slide-container:hover .show-on-hover {
+		display: inline-block;
+	}
+
+    .available-charts-container .btn {
+        margin-right: 0.5em;
+    }
+    .available-charts-container .btn.active {
+		background-color: #125691
+    }
+    .available-charts-container .btn:hover {
+        background-color: #428bca;
+    }
+
+    .available-charts-container .btn.active:hover {
+        background-color: #125691;
+    }
+
+	.slides.pin label {
+		top: 0.5em;
+		right: 0.5em;
+	}
+	.slides.pin label.zoom {
+		right: 7.4em;
+	}
+    .empty-pinned {
+        margin-top: 2em;
+    }
+
+	label.pin {
+		right: .6em;
+	}
+
+	label.pin.zoom {
+		right: 3.6em;
+	}
+	label.pin.zoom.dash {
+		right: .6em;
+	}
+	label.pin {
+		position: absolute;
+		top: 0em;
+		background-color: #FCFCFC;
+		border-color: green;
+		color: #66AA66;
+	}
+	label.pin.static {
+		position: inherit;
+		cursor: text;
+	}
+	label.pin:hover {
+		background-color: #FCFCFC;
+		color: green;
+	}
+	label.pin.active {
+		border-color: darkgreen;
+		background-color: #EFE;
+		color: darkgreen;
+	}
+	label.pin.active:hover {
+		background-color: #EFE;
+	}
+	.chart-tabs ul {
+		margin: 0 2em;
+	}
+
+	/* the color of the 'Saved' tab when there are saved charts */
+	li.pinned a {
+		color: darkgreen;
+	}
+
+    /* The starting CSS styles for the enter animation */
+    .cloak.ng-enter {
+        transition:0.5s linear all;
+        opacity:0;
+    }
+
+    /* The finishing CSS styles for the enter animation */
+    .cloak.ng-enter.ng-enter-active {
+        opacity:1;
+    }
+
+    /* The starting CSS styles for the leave animation */
+    .cloak.ng-leave {
+        transition:0.5s linear all;
+        opacity: 1;
+        /* position: relative; */
+    }
+
+    /* The finishing CSS styles for the leave animation */
+    .cloak.ng-leave.ng-leave-active {
+        opacity:0;
+    }
+
+    .ghost {
+      animation-duration: 1s;
+      animation-name: fade-to-tab;
+    }
+
+    @keyframes fade-to-tab {
+      from {
+        display: inline-block;
+        opacity: 1;
+        width: 6em;
+        z-index: 100;
+        right: -1px;
+      }
+
+      99% {
+        opacity: 0.9;
+      }
+
+      to {
+        width: 6em;
+        left: 100px;
+        top: 60px;
+        opacity: 0;
+        display; none;
+      }
+    }
+
+    .c3chart {
+        width: 1024px;
+        height: 300px;
+    }
+
+    .c3-axis-y-label {
+        font-size: 1.75em;
+    }
+
+    c3-xgrid-lines, c3-xgrid-line {
+        opacity: 0.5;
+
+    }
