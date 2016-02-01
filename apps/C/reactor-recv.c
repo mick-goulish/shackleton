@@ -1,32 +1,4 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- *
- */
-
-
-/*#######################################################
-  This program is Cliff Jansen's reactor-recv.c , with
-  some hacking and slashing that I thought was probably
-  only useful in this context.
-*#######################################################*/
-
-
-/*
  * Implements a subset of msgr-recv.c using reactor events.
  */
 
@@ -64,6 +36,8 @@ typedef struct
   bool        timestamping;
   int         report_frequency;
   char        results_dir[1000];
+  int         message_size;
+  bool        print_message_size;
 } 
 Options_t;
 
@@ -319,11 +293,31 @@ connection_dispatch ( pn_handler_t *h, pn_event_t *event, pn_event_type_t type )
           ---------------------------------------*/
           if ( ! ( cc->global->received % cc->global->opts->report_frequency ) )
           {
+            static bool first_time = true;
             double cpu_percentage;
             int    rss;
             double sslr = rr_seconds_since_last_report ( & cc->global->resource_reporter );
             rr_report ( & cc->global->resource_reporter, & cpu_percentage, & rss );
             double throughput = (double)(cc->global->opts->report_frequency) / sslr;
+
+            if ( first_time )
+            {
+              if ( cc->global->opts->timestamping )
+	      {
+		if ( cc->global->opts->print_message_size )
+		  fprintf(cc->global->report_fp, "msg_size\trecv_msgs\tcpu\trss\tthroughput\tlatency\n");
+		else
+		  fprintf(cc->global->report_fp, "recv_msgs\tcpu\trss\tthroughput\tlatency\n");
+	      }
+	      else
+	      {
+		if ( cc->global->opts->print_message_size )
+		  fprintf(cc->global->report_fp, "msg_size\trecv_msgs\tcpu\trss\tthroughput\n");
+		else
+		  fprintf(cc->global->report_fp, "recv_msgs\tcpu\trss\tthroughput\n");
+	      }
+              first_time = false;
+            }
 
             if ( cc->global->opts->timestamping )
             {
@@ -333,7 +327,7 @@ connection_dispatch ( pn_handler_t *h, pn_event_t *event, pn_event_type_t type )
               cc->global->total_latency = 0;
 
               fprintf ( cc->global->report_fp, 
-                        "recv_msgs: %10d   cpu: %5.1lf   rss: %6d   throughput: %8.0lf   latency: %.3lf\n", 
+                        "%d\t%lf\t%d\t%lf\t%lf\n", 
                         cc->global->received, 
                         cpu_percentage,
                         rss,
@@ -343,13 +337,29 @@ connection_dispatch ( pn_handler_t *h, pn_event_t *event, pn_event_type_t type )
             }
             else
             {
-              fprintf ( cc->global->report_fp, 
-                        "recv_msgs: %10d   cpu: %5.1lf   rss: %6d   throughput: %8.0lf\n", 
-                        cc->global->received, 
-                        cpu_percentage,
-                        rss,
-                        throughput
-                      );
+              // was: 
+              // "recv_msgs: %10d   cpu: %5.1lf   rss: %6d   throughput: %8.0lf\n"
+	      if ( cc->global->opts->print_message_size )
+	      {
+		fprintf ( cc->global->report_fp, 
+			  "%d\t%d\t%lf\t%d\t%lf\n", 
+			  cc->global->opts->message_size,
+			  cc->global->received, 
+			  cpu_percentage,
+			  rss,
+			  throughput
+			);
+	      }
+	      else
+	      {
+		fprintf ( cc->global->report_fp, 
+			  "%d\t%lf\t%d\t%lf\n", 
+			  cc->global->received, 
+			  cpu_percentage,
+			  rss,
+			  throughput
+			);
+	      }
             }
 
           }
@@ -507,9 +517,14 @@ listener_dispatch ( pn_handler_t *h, pn_event_t * event, pn_event_type_t type )
 
     case PN_REACTOR_FINAL:
       {
-        if (gc->received == 0) statistics_start(gc->stats);
+        if (gc->received == 0) 
+          statistics_start(gc->stats);
+
         //statistics_report(gc->stats, gc->sent, gc->received);
         fclose ( gc->report_fp );
+
+        if ( gc->received > 0 )
+          fprintf ( stderr, "reactor-recv received %d messages.\n", gc->received );
       }
       break;
 
@@ -546,6 +561,8 @@ parse_options ( int argc, char **argv, Options_t *opts )
   opts->report_frequency = 0;
   opts->timestamping = false;
   opts->msg_count = 0;
+  opts->message_size = 0;
+  opts->print_message_size = false;
   strcpy ( opts->results_dir, "none" );
   addresses_init( &opts->subscriptions);
 
@@ -574,6 +591,17 @@ parse_options ( int argc, char **argv, Options_t *opts )
     {
       strcpy ( opts->results_dir, argv[i+1]);
       ++ i;
+    }
+    else
+    if ( ! strcmp ( "-s", arg ) )
+    {
+      opts->message_size = atoi ( argv[i+1] );
+      ++ i;
+    }
+    else
+    if ( ! strcmp ( "-print_message_size", arg ) )
+    {
+      opts->print_message_size = true;
     }
     else
     {

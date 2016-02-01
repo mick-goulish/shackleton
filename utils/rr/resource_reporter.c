@@ -25,10 +25,8 @@ rr_now ( void )
 
 
 void
-rr_init ( rr_p rr )
+rr_init ( rr_p rr, pid_t pid )
 {
-  pid_t pid = getpid();
-
   sprintf ( rr->stat_filename,  "/proc/%d/stat",  pid );
   sprintf ( rr->statm_filename, "/proc/%d/statm", pid );
 

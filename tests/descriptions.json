@@ -1,0 +1,213 @@
+{
+  "message_size":
+  {
+    "description": 
+    "This is a point-to-point, non-intermediated test.  Use one proton sender to talk to one proton receiver.  Do many runs, each with a different message size, and see how throughput and CPU usage changes with changing message size.  Throughput is reported in two ways: in messages per second, and in bytes per second.",
+    "charts": [
+      { "id": "persec",
+        "title": "Bytes per second vs message size",
+        "yLabel": "Bytes per second",
+        "yFormat": "s",
+        "column1": "msg_size",
+        "column2": "throughput"
+      },
+      { "id": "cpu",
+        "title": "CPU usage vs message size",
+        "yLabel": "CPU usage (percent)",
+        "yFormat": "s",
+        "column": "cpu"
+      },
+      { "id": "throughput",
+        "title": "Messages received per second vs message size",
+        "yLabel": "Messages per second",
+        "yFormat": ".3s",
+        "column": "throughput"
+      }
+    ],
+    "tooltip": {
+      "pre": "Message size: ",
+      "format": ".2s",
+      "post": " bytes"
+    },
+    "axis": {
+      "x": {
+        "ticks": [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000],
+        "label": "Message size (bytes)",
+        "column": "msg_size"
+      }
+    },
+    "clients": {
+      "receiver": ["throughput", "cpu", "persec"],
+      "sender": ["cpu"]
+    }
+
+  },
+
+  "p2p_soak":
+  {
+    "description": 
+    "This is a point-to-point, non-intermediated test.  Use one proton sender to talk to one proton receiver.  Send 100 million messages.  At the end of each million, measure the throughput, latency, CPU usage, and memory usage for both the sender and receiver.",
+    "charts": [
+      { "id": "mem",
+        "title": "Memory usage",
+        "yLabel": "Kilobytes",
+        "yFormat": ".3s",
+        "xFormat": "n",
+        "column": "rss"
+      },
+      { "id": "cpu",
+        "title": "CPU usage",
+        "yLabel": "CPU usage (percent)",
+        "yFormat": ".3s",
+        "xFormat": "s",
+        "column": "cpu"
+      },
+      { "id": "throughput",
+        "title": "Throughput measured every million messages",
+        "yLabel": "Messages per second",
+        "yFormat": ".3s",
+        "xFormat": "n",
+        "dash": true,
+        "column": "throughput"
+      },
+      { "id": "latency",
+        "title": "Latency averaged every million messages",
+        "yLabel": "Latency (msec)",
+        "yFormat": ".3s",
+        "xFormat": "n",
+        "column": "latency",
+        "latency": true
+      }
+    ],
+    "tooltip": {
+      "pre": "After ",
+      "format": "",
+      "post": " million messages"
+    },
+    "axis": {
+      "x": {
+        "label": "Messages sent (millions)",
+        "column": {"receiver": "recv_msgs", "sender": "send_msgs"},
+        "divisor": 1000000
+      }
+    },
+    "clients": {
+      "receiver": ["throughput", "cpu", "mem", "latency"],
+      "sender": ["throughput", "cpu", "mem"]
+    }
+  },
+
+  "router_1":
+  {
+    "description": 
+    "Using the Dispatch Router as an intermediary, run tests with varying numbers of Proton sender-receiver pairs.  Each sender talks to one receiver.  Measure the router's memory and CPU usage and show how it varies with varying numbers of client-pairs.",
+    "charts": [
+      { "id": "mem",
+        "title": "Memory usage",
+        "yLabel": "Kilobytes",
+        "yFormat": ".3s",
+        "xFormat": "n",
+        "column": {"router": "mem", "default": "rss"}
+      },
+      { "id": "cpu",
+        "title": "CPU usage",
+        "yLabel": "CPU usage (percent)",
+        "yFormat": "s",
+        "xFormat": "n",
+        "column": "cpu"
+      },
+      { "id": "throughput",
+        "title": "Throughput measured every million messages",
+        "yLabel": "Messages per second",
+        "yFormat": ".3s",
+        "xFormat": "n",
+        "dash": true,
+        "column": "throughput"
+      }
+    ],
+    "tooltip": {
+      "pre": "After ",
+      "format": "n",
+      "post": {"router": " seconds", "default": " million messages"}
+    },
+    "axis": {
+      "x": {
+        "label": {"router": "Seconds", "default": "Messages sent (millions)"},
+        "column": {"receiver": "recv_msgs", "sender": "send_msgs", "router": "time"},
+        "divisor": {"router": 1, "default": 1000000}
+      }
+    },
+    "clients": {
+      "receiver": ["throughput", "cpu", "mem"],
+      "router": ["cpu", "mem"],
+      "sender": ["cpu", "mem"]
+    }
+  },
+
+  "router_soak":
+  {
+    "description": 
+    "Using the Dispatch Router as an intermediary, run a long test during which many sender-receiver pairs come and go.  Measure the router's CPU and memory usage over time.",
+    "charts": [
+      { "id": "cpu",
+        "title": "CPU usage",
+        "yLabel": "CPU usage (percent)",
+        "yFormat": "s",
+        "column": "cpu"
+      },
+      { "id": "mem",
+        "title": "Memory usage",
+        "yLabel": "Kilobytes",
+        "yFormat": ".3s",
+        "column": "rss"
+      }
+    ],
+    "tooltip": {
+      "pre": "After ",
+      "format": "s",
+      "post": " seconds"
+    },
+    "axis": {
+      "x": {
+        "label": "Seconds",
+        "column": "time"
+      }
+    },
+    "clients": {
+      "router": ["cpu", "mem"]
+    }
+  },
+  "router_scale":
+  {
+    "description":
+    "Using the Dispatch Router as an intermediary, run a series of tests in which the number of sender-receiver pairs is increased.  In this test, each sender chooses a random number between 1 and 50, and sleeps for that many seconds before sending its batch of messages -- as fast as it can -- to its receiver.  We study how the router's resource usage changes as the number of sender-receiver pairs is increased.",
+    "charts": [
+      { "id": "cpu",
+        "title": "CPU usage",
+        "yLabel": "CPU usage (percent)",
+        "yFormat": "s",
+        "column": "cpu"
+      },
+      { "id": "mem",
+        "title": "Memory usage",
+        "yLabel": "Kilobytes",
+        "yFormat": ".3s",
+        "column": "rss"
+      }
+    ],
+    "tooltip": {
+      "pre": "After ",
+      "format": "s",
+      "post": " seconds"
+    },
+    "axis": {
+      "x": {
+        "label": "Seconds",
+        "column": "time"
+      }
+    },
+    "clients": {
+      "router": ["cpu", "mem"]
+    }
+  }
+}

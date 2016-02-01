@@ -8,15 +8,15 @@ INCLUDES="-I${PROTON_ROOT}/examples/cpp  -I${PROTON_ROOT}/examples/include -I${P
 
 WARNINGS="-Werror -Wall -pedantic-errors -Wno-format -Wno-variadic-macros"
 
-OPTO=-O3
+#OPTO=-O3
+OPTO=-g
 
 
 
-/usr/bin/cc                           \
+/usr/bin/c++                          \
   -Wno-unused-function                \
   -DPN_HAS_BOOST=1                    \
   ${OPTO}                             \
-  -std=c99                            \
   -DNDEBUG                            \
   ${INCLUDES}                         \
   -I${PROTON_ROOT}/examples/c/include \
@@ -26,35 +26,36 @@ OPTO=-O3
 
 
 
-for TARGET in reactor-recv reactor-send
+
+
+# removed recurring_timer
+#for TARGET in simple_send simple_recv direct_send 
+for TARGET in recurring_timer  simple_send simple_recv direct_send
 do
   echo " "
   echo " "
   echo " "
   echo "target: ${TARGET}"
   echo "compiling..."
-  /usr/bin/cc            \
-    -Wno-unused-function \
-    -DPN_HAS_BOOST=1     \
-    ${OPTO}              \
-  -std=c99                            \
-    -DNDEBUG             \
-    ${INCLUDES}          \
-    -I${PROTON_ROOT}/examples/c/include \
-    ${WARNINGS}          \
-    -c ./${TARGET}.c     \
-    -o ./${TARGET}.o 
+  /usr/bin/c++         \
+    -DPN_HAS_BOOST=1   \
+    ${OPTO}            \
+    -DNDEBUG           \
+    ${INCLUDES}        \
+    ${WARNINGS}        \
+    -c ./${TARGET}.cpp \
+    -o ./${TARGET}.o
 
 
   echo "linking..."
-  /usr/bin/cc          \
+  /usr/bin/c++         \
     ${OPTO}            \
     -DNDEBUG           \
-    /home/mick/shackleton/libs/qpid-proton/build/tests/tools/apps/c/CMakeFiles/reactor-recv.dir/msgr-common.c.o \
-    ./resource_reporter.o \
     ./${TARGET}.o  -o ${TARGET} \
     -rdynamic                   \
-    ${PROTON_ROOT}/build/proton-c/libqpid-proton.so                        \
+    ${PROTON_ROOT}/build/proton-c/bindings/cpp/libqpid-proton-cpp.so \
+    ${PROTON_ROOT}/build/proton-c/libqpid-proton.so                  \
+    ./resource_reporter.o \
     -lssl -lcrypto -lsasl2 -Wl,-rpath,${PROTON_ROOT}/build/proton-c/bindings/cpp:${PROTON_ROOT}/build/proton-c
 
 

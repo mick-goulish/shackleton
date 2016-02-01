@@ -1,32 +1,4 @@
 /*
- * Licensed to the Apache Software Foundation (ASF) under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership.  The ASF licenses this file
- * to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
- *
- *   http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
- *
- */
-
-
-/*#######################################################
-  This program is Cliff Jansen's reactor-send.c , with
-  some hacking and slashing that I thought was probably
-  only useful in this context.
-*#######################################################*/
-
-
-/*
  * Implements a subset of msgr-send.c using reactor events.
  */
 
@@ -89,6 +61,7 @@ typedef struct {
     bool timestamping;
     int  report_frequency;
     char results_dir[1000];
+    bool print_message_size;
 } Options_t;
 
 
@@ -307,13 +280,44 @@ void sender_dispatch(pn_handler_t *h, pn_event_t *event, pn_event_type_t type)
           rr_report ( & sc->resource_reporter, & cpu_percentage, & rss );
           double throughput = (double)(sc->opts->report_frequency) / sslr;
           
-          fprintf ( sc->report_fp,
-                    "send_msgs: %10d   cpu: %5.1lf   rss: %6d   throughput: %8.0lf\n",
-                    sc->sent,
-                    cpu_percentage,
-                    rss,
-                    throughput
-                  );
+	  static bool first_time = true;
+
+	  if ( first_time )
+	  {
+	    if ( sc->opts->print_message_size )
+	    {
+              fprintf(sc->report_fp, "msg_size\tsend_msgs\tcpu\trss\tthroughput\n");
+	    }
+	    else
+	    {
+              fprintf(sc->report_fp, "send_msgs\tcpu\trss\tthroughput\n");
+	    }
+	    first_time = false;
+	  }
+
+          // was:
+          // "send_msgs: %10d   cpu: %5.1lf   rss: %6d   throughput: %8.0lf\n"
+	  if ( sc->opts->print_message_size )
+	  {
+	    fprintf ( sc->report_fp,
+		      "%d\t%d\t%lf\t%d\t%lf\n",
+		      sc->opts->msg_size,
+		      sc->sent,
+		      cpu_percentage,
+		      rss,
+		      throughput
+		    );
+	  }
+	  else
+	  {
+	    fprintf ( sc->report_fp,
+		      "%d\t%lf\t%d\t%lf\n",
+		      sc->sent,
+		      cpu_percentage,
+		      rss,
+		      throughput
+		    );
+	  }
        }
 
         return_message(sc, msg);
@@ -499,6 +503,11 @@ parse_options ( int argc, char **argv, Options_t *opts )
         opts->msg_size = atoi(argv[i+1]);
         fprintf ( stderr, "reactor-send: msg_size %d\n", opts->msg_size );
         ++ i;
+      }
+      else
+      if ( ! strcmp ( "-print_message_size", arg ) )
+      {
+        opts->print_message_size = true;
       }
       else
       {

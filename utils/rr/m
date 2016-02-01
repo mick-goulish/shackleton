@@ -1,0 +1,49 @@
+#! /bin/bash
+
+
+
+INCLUDES="."
+OPTO=-O3
+
+
+
+/usr/bin/cc                  \
+  -Wno-unused-function       \
+  ${OPTO}                    \
+  -std=c99                   \
+  -DNDEBUG                   \
+  -I.                        \
+  -c ./resource_reporter.c   \
+  -o ./resource_reporter.o
+
+
+
+for TARGET in rr
+do
+  echo " "
+  echo " "
+  echo " "
+  echo "target: ${TARGET}"
+  echo "compiling..."
+  /usr/bin/cc                           \
+    ${OPTO}                             \
+    -std=c99                            \
+    -DNDEBUG                            \
+    -I.                                 \
+    -c ./${TARGET}.c                    \
+    -o ./${TARGET}.o
+
+
+  echo "linking..."
+  /usr/bin/cc                   \
+    ${OPTO}                     \
+    -DNDEBUG                    \
+    ./resource_reporter.o       \
+    ./${TARGET}.o  -o ${TARGET} \
+    -rdynamic           
+
+  echo "built ${TARGET} ."
+  echo " "
+  echo " "
+  echo " "
+done

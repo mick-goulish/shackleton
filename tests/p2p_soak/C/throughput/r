@@ -1,0 +1,18 @@
+#! /bin/bash
+
+echo "killing old stuff"
+${SHACKLETON_ROOT}/utils/clean_up.sh
+
+
+export SHACKLETON_ROOT=/home/mick/shackleton
+
+YEAR=`date +%Y`
+MONTH=`date +%m`
+DAY=`date +%d`
+
+
+echo -n "starting at: " ; date
+
+./test.sh  ${YEAR}  ${MONTH}  ${DAY}
+
+echo -n "ending at: " ; date

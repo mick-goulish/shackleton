@@ -1,6 +1,10 @@
-
 #ifndef RESOURCE_REPORTER_H
 #define RESOURCE_REPORTER_H
+
+#include <sys/types.h>
+#include <unistd.h>
+#include <stdint.h>
+
 
 /*-------------------------------------------------
   The Resource Reporter -- reporting on CPU and 
@@ -22,7 +26,7 @@ rr_t,
 
 
 double   rr_now                       ( void );
-void     rr_init                      ( rr_p );
+void     rr_init                      ( rr_p, pid_t );
 uint64_t rr_get_cpu_usage             ( rr_p );
 void     rr_report                    ( rr_p, double * cpu, int * rss );
 int      rr_get_rss                   ( rr_p rr );

@@ -1,0 +1,14 @@
+#! /bin/bash
+
+echo -n "starting at: "
+date
+
+export SHACKLETON_ROOT=/home/mick/shackleton
+
+YEAR=`date +%Y`
+MONTH=`date +%m`
+DAY=`date +%d`
+
+./test.sh  ${YEAR}  ${MONTH}  ${DAY}
+
+

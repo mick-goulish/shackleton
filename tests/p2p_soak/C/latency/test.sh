@@ -1,30 +1,10 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
-
 #! /bin/bash
 
 
-#-------------------------------
-# Make old stuff go away.
-#-------------------------------
-rm -f ./temp/*
-
+pkill reactor-recv
+sleep 1
+pkill reactor-send
+sleep 1
 
 
 TEST_NAME=p2p_soak
@@ -52,10 +32,6 @@ CPU_B=2
 #  timestamp each message.
 #===============================================================
 
-MEASUREMENT=latency
-
-echo "running test: ${TEST_NAME} ${LANGUAGE} ${MEASUREMENT}"
-
 RESULT_ROOT=${SHACKLETON_ROOT}/results/tests/${YEAR}/${MONTH}/${DAY}/${TEST_NAME}/${LANGUAGE}
 echo "reports being written to ${RESULT_ROOT}"
 
@@ -73,9 +49,20 @@ mkdir -p ${RESULT_ROOT}/sender
 #--------------------------
 # test parameters
 #--------------------------
-N_MESSAGES=100000000
-REPORT_FREQUENCY=1000000
+
 TIMESTAMPING=-t
+
+#-----------------------------------
+# Production 
+#-----------------------------------
+N_MESSAGES=10000000
+REPORT_FREQUENCY=100000
+
+#-----------------------------------
+# Dev 
+#-----------------------------------
+#N_MESSAGES=2000000
+#REPORT_FREQUENCY=100000
 
 
 
@@ -113,20 +100,13 @@ echo "creating display graphics"
 mv ${RESULT_ROOT}/receiver/report.txt ${RESULT_ROOT}/receiver/l_report.txt
 RECV_REPORT=${RESULT_ROOT}/receiver/l_report.txt
 
-cat ${RECV_REPORT}  |  awk '{print $2 " " $10}' > ${RESULT_ROOT}/receiver/latency.txt
+# Since this is the latency-only test, we
+# do not need the report from the sender.
+rm ${RESULT_ROOT}/sender/report.txt
 
 
-cp ${RESULT_ROOT}/receiver/latency.txt  ./temp/receiver_latency.txt
 
 
-
-#--------------------------------------------------------------
-#  Make images for receiver
-#--------------------------------------------------------------
-gnuplot ./gnuplot_script
-
-
-cp ./temp/receiver_latency.jpg   ${RESULT_ROOT}/receiver/latency.jpg
 
 echo " "
 echo " "

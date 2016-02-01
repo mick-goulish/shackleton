@@ -1,32 +1,6 @@
-#
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#   http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
-#
-
-
-
-
 #! /bin/bash
 
 
-#-------------------------------
-# Make old stuff go away.
-#-------------------------------
-rm -f ./temp/*
 
 
 
@@ -51,11 +25,6 @@ CPU_A=1
 CPU_B=2
 
 
-#===============================================================
-#===============================================================
-
-echo "running test: ${TEST_NAME} ${LANGUAGE} ${MEASUREMENT}"
-
 RESULT_ROOT=${SHACKLETON_ROOT}/results/tests/${YEAR}/${MONTH}/${DAY}/${TEST_NAME}/${LANGUAGE}
 echo "reports being written to ${RESULT_ROOT}"
 
@@ -72,13 +41,21 @@ rm -f ${RESULT_ROOT}/receiver/tp_results.txt
 #--------------------------
 # test parameters
 #--------------------------
-N_MESSAGES=2000000
-REPORT_FREQUENCY=2000000
 TIMESTAMPING=
 
 
+#-------------------------------------------------
+#  Production 
+#-------------------------------------------------
+#MSG_SIZE_ARRAY=(       100     200       500     1000     2000     5000     7000     8000     9000    10000    11000    12000    15000   17000   20000    25000    30000   50000   70000  100000 )
+#N_MESSAGES_ARRAY=( 2000000  2000000  2000000  2000000  2000000  1000000  1000000  1000000  1000000  1000000   900000   800000   700000  500000  500000   500000   400000  400000  250000  100000 )
+
+
+#-------------------------------------------------
+#  Development 
+#-------------------------------------------------
 MSG_SIZE_ARRAY=(       100     200       500     1000     2000     5000     7000     8000     9000    10000    11000    12000    15000   17000   20000    25000    30000   50000   70000  100000 )
-N_MESSAGES_ARRAY=( 2000000  2000000  2000000  2000000  2000000  1000000  1000000  1000000  1000000  1000000   900000   800000   700000  500000  500000   500000   400000  400000  250000  100000 )
+N_MESSAGES_ARRAY=( 100000  100000  100000  100000  100000  50000  50000  30000  30000  20000   15000   15000   10000  10000  10000   10000   10000  10000  10000  3000 )
 array_size=${#MSG_SIZE_ARRAY[@]}
 array_size=$(( $array_size - 1 ))
 
@@ -105,20 +82,23 @@ do
 
   echo " "
   echo "starting ${RECV}"
-  taskset -c ${CPU_A} ${RECV} ${TIMESTAMPING}        \
-                              -c ${N_MESSAGES}       \
-                              -r ${REPORT_FREQUENCY} \
-                              -d ${RESULT_ROOT}/receiver &
+  taskset -c ${CPU_A} ${RECV} ${TIMESTAMPING}            \
+                              -c ${N_MESSAGES}           \
+                              -r ${REPORT_FREQUENCY}     \
+                              -d ${RESULT_ROOT}/receiver \
+			      -s ${MSG_SIZE}             \
+			      -print_message_size   &
   RECV_PID=$!
 
   sleep 2
 
   echo "running ${SEND}"
-  taskset -c ${CPU_B} ${SEND} ${TIMESTAMPING}        \
-                              -c ${N_MESSAGES}       \
-                              -r ${REPORT_FREQUENCY} \
-                              -s ${MSG_SIZE}         \
-                              -d ${RESULT_ROOT}/sender &
+  taskset -c ${CPU_B} ${SEND} ${TIMESTAMPING}          \
+                              -c ${N_MESSAGES}         \
+                              -r ${REPORT_FREQUENCY}   \
+                              -s ${MSG_SIZE}           \
+                              -d ${RESULT_ROOT}/sender \
+			      -print_message_size  &
   SEND_PID=$!
 
 
@@ -127,56 +107,28 @@ do
   wait
 
 
-  #----------------------------------------------------------------------------------
-  # Save just the message size and throughput from this result in "all_results".
-  #----------------------------------------------------------------------------------
-
-  # receiver -----
-  TP=`cat ${RESULT_ROOT}/receiver/report.txt | awk '{print $8}'`
-  echo "${MSG_SIZE}  ${TP}" >>  ${RESULT_ROOT}/receiver/all_results
-
-  # sender -----
-  TP=`cat ${RESULT_ROOT}/sender/report.txt   | awk '{print $8}'`
-  echo "${MSG_SIZE}  ${TP}" >>  ${RESULT_ROOT}/sender/all_results
-
-
-
   #-------------------------------------------------------------
   # And keep the whole report around, in a list of reports.
   #-------------------------------------------------------------
-  report=`cat ${RESULT_ROOT}/receiver/report.txt`
-  echo "msg_size: ${MSG_SIZE}  ${report}"  >> ${RESULT_ROOT}/receiver/tp_report.txt
-
-  report=`cat ${RESULT_ROOT}/sender/report.txt`
-  echo "msg_size: ${MSG_SIZE}  ${report}"  >> ${RESULT_ROOT}/sender/tp_report.txt
+  if [ $i -eq 0 ]
+  then
+    cp ${RESULT_ROOT}/receiver/report.txt ${RESULT_ROOT}/receiver/tp_report.txt
+    rm ${RESULT_ROOT}/receiver/report.txt
+    #mv ${RESULT_ROOT}/receiver/report.txt ${RESULT_ROOT}/receiver/report_$i.txt
+    cp ${RESULT_ROOT}/sender/report.txt   ${RESULT_ROOT}/sender/tp_report.txt
+    rm ${RESULT_ROOT}/sender/report.txt
+    #mv ${RESULT_ROOT}/sender/report.txt   ${RESULT_ROOT}/sender/report_$i.txt
+  else
+    cat ${RESULT_ROOT}/receiver/report.txt | tail -1 >> ${RESULT_ROOT}/receiver/tp_report.txt
+    #mv  ${RESULT_ROOT}/receiver/report.txt ${RESULT_ROOT}/receiver/report_$i.txt
+    rm ${RESULT_ROOT}/receiver/report.txt
+    cat ${RESULT_ROOT}/sender/report.txt   | tail -1 >> ${RESULT_ROOT}/sender/tp_report.txt
+    #mv  ${RESULT_ROOT}/sender/report.txt   ${RESULT_ROOT}/sender/report_$i.txt
+    rm ${RESULT_ROOT}/sender/report.txt
+  fi
 done
 
 
-
-# receiver text processing --------------------------------------------
-cp ${RESULT_ROOT}/receiver/all_results  ./recv_all_results
-cp ${RESULT_ROOT}/receiver/tp_report.txt  ./recv_all_reports
-
-cat recv_all_results  | awk '{print $1 " * " $2}' | bc >  bytes_per_second
-cat recv_all_reports  | awk '{print $2 " " $6}' >  recv_msg_size_vs_cpu
-
-paste recv_all_results bytes_per_second | awk '{print $1 " " $3}' > message-size_bps
-
-
-
-# sender text processing --------------------------------------------
-cp ${RESULT_ROOT}/sender/tp_report.txt  ./send_all_reports
-
-cat send_all_reports  | awk '{print $2 " " $6}' >  send_msg_size_vs_cpu
-
-
-
-# graphics processing ---------------------------
-
-gnuplot ./gnuplot_script
-
-cp r*jpg ${RESULT_ROOT}/receiver
-cp s*jpg ${RESULT_ROOT}/sender
 
 
 

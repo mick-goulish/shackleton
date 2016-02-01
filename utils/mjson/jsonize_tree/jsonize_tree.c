@@ -160,7 +160,11 @@ jsonize_dir ( mjson_node_p parent_node, char const * dir_name )
 
 
 
-// /var/www/html/perf/results/tests/2015
+/*
+  /var/www/html/perf/results/tests
+    will contain 2015, 2016, etc.
+
+*/
 int
 main ( int argc, char ** argv )
 { 

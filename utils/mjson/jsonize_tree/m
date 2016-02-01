@@ -13,12 +13,12 @@ OPTO=-g
 for file in *.c
 do
   echo compiling $file --------------------------------------------
-  $CC                           \
-    $FLAGS                      \
-    $DEFS                       \
-    -I/home/mick/mjson          \
-    $OPTO                       \
-    -c                          \
+  $CC                                \
+    $FLAGS                           \
+    $DEFS                            \
+    -I${SHACKLETON_ROOT}/utils/mjson \
+    $OPTO                            \
+    -c                               \
     $file
 done
 
@@ -27,7 +27,7 @@ echo Linking ====================================================
 $CC                           \
   -o $PROJECT                 \
   $PROJECT.o                  \
-  -L/home/mick/mjson    \
+  -L${SHACKLETON_ROOT}/utils/mjson \
   -lmjson
 
 rm *.o
