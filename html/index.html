@@ -53,6 +53,7 @@
         <uib-tab title="View the charts for a date" heading="Charts" ng-click="saveTabState(true)" active="tabState.charts">
             <!-- dark bar that has the date/test/language/client dropdown lists -->
             <div class="choose-options">
+
                 <h4 class="date-prompt">Date</h4>
                 <div class="date-input">
                     <p class="input-group">
@@ -72,6 +73,9 @@
                     <h4 class="chart-prompt">{{info.prompt}}</h4>
                     <div class="chart-input">
                         <select ng-model="info.curVal" ng-options="test for test in info.allVals"></select>
+                        <button ng-if="name == 'test'" type="button" class="btn btn-default" popover-placement="bottom"
+                                uib-popover="{{showDescription(name)}}" popover-trigger="mouseenter">
+                            <i class="glyphicon glyphicon-info-sign"></i></button>
                     </div>
                 </div>
 

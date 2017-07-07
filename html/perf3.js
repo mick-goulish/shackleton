@@ -29,6 +29,7 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 
 	// the contents of the json file that describes the directory structure
     var results;
+	var descriptions;   // from results/descriptions.json - info about each test
 	$scope.charts = [];
 	var c3Charts = [];
 
@@ -49,8 +50,11 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 		if (save)
             $localStorage[thisSelector] = newVal;
 
-		// get the list of all values for the selector
-        $scope.selectors[nextSelector].allVals = Object.keys(root);
+		if (!root)
+			$scope.selectors[nextSelector].allVals = [];
+		else
+			// get the list of all values for the selector
+            $scope.selectors[nextSelector].allVals = Object.keys(root);
         // get the prefered value. if the old value is in the allVals list, use it. otherwise use the 1st val in the list
         var prefered = getScopeVariable(nextSelector, $scope.selectors[nextSelector].curVal, $scope.selectors[nextSelector].allVals);
 		// if the prefered val is the same as the current val, manually trigger the next handler
@@ -155,7 +159,10 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 			// wait for the charts to appear on the page
 	        showCharts($scope.charts, 'id');
 		}
-		getAllSamples(lastDates,
+		var dateIndex = lastDates.map(Number).indexOf(+$scope.selectors.date)
+		var dates = lastDates.slice(Math.max(dateIndex-4, 0), dateIndex+1)
+
+		getAllSamples(dates,
                         $scope.selectors.test.curVal,
                         $scope.selectors.language.curVal,
                         newVal, gotAllSamples );
@@ -165,7 +172,7 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 		var dataFiles = getLastData(dates, test, language, client);
 	    var q = queue();
 	    dataFiles.forEach ( function (file) {
-	        q.defer(d3.text, file.src);
+	        q.defer(d3.tsv, file.src);
 	    })
 	    q.awaitAll( function (error, results) {
 			if (error) {
@@ -174,18 +181,7 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 
 			var allSamples = [];
 			results.forEach( function (result, fileIndex) {
-				var daySamples = {date: dataFiles[fileIndex].date, results: {}, latency: dataFiles[fileIndex].latency};
-				var rows = result.split('\n');
-				rows.forEach( function (row) {
-					var cols = row.split(' ');
-					cols = cols.filter( function (col) { return col!=''});
-					for (var i=0; i<cols.length; i+=2) {
-						if (!daySamples.results[cols[i]]) {
-							daySamples.results[cols[i]] = [];
-						}
-						daySamples.results[cols[i]].push(cols[i+1])
-					}
-				})
+				var daySamples = {date: dataFiles[fileIndex].date, results: result, latency: dataFiles[fileIndex].latency};
 				allSamples.push(daySamples);
 			})
 			callback(allSamples);
@@ -226,7 +222,8 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 		})
 		charts.forEach( function (chart) {
 			if (!chart.c3) {
-				var c3Chart = gen_a_chart(chart[key], chart.columns, chart.yLabel, chart.format, chart.tickVals, chart.callback)
+				var xFormat = chart.xFormat ? chart.xFormat : '.3s'
+				var c3Chart = gen_a_chart(chart[key], chart.columns, chart.yLabel, chart.yFormat, xFormat, chart.tickVals, chart.callback)
 				chart['c3'] = c3Chart;
 				chart['min'] = getMin(c3Chart);
 			}
@@ -235,7 +232,7 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 		})
     }
 
-	var gen_a_chart = function (id, columns, yLabel, yFormat, tickVals, callback) {
+	var gen_a_chart = function (id, columns, yLabel, yFormat, xFormat, tickVals, callback) {
 		var chart = c3.generate({
 			bindto: '#'+id,
 			size: { width: $scope.overrideTest ? 800 : 1024, height: 300 },
@@ -248,7 +245,7 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
                   x: {
 		            type: 'indexed',
 		            tick: {
-		                format: d3.format('.3s'),
+		                format: d3.format(xFormat),
 		                values: tickVals
 		            }
                   },
@@ -284,230 +281,93 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 
 	var chartFactory = function (allSamples, language, test, client, date, pushTo, measurement) {
 
-		// create the message_size charts
-		var message_size_charts = function () {
-			var columns = [];
-			var bytes_v_msize = [];
-			var msize_v_cpu = [];
-			var mrecv_v_msize = [];
-
-			columns[0] = ['x'];
-			mrecv_v_msize[0] = msize_v_cpu[0] = bytes_v_msize[0] = columns[0];
-
-			// for each date in allSamples
-			var initCols = true;
-			allSamples.forEach (function (daySample, dayIndex) {
-				if (!daySample.latency) {
-					var date = daySample.date;
-					var results = daySample.results;
-					var subDate = date.toDateString().substr(4);
-					msize_v_cpu[dayIndex+1] = [subDate];
-					bytes_v_msize[dayIndex+1] = [subDate];
-					mrecv_v_msize[dayIndex+1] = [subDate];
-					results['msg_size:'].forEach( function (msize, i) {
-						// initialize the x axis values
-						if (initCols)
-							columns[0].push( msize )
-						bytes_v_msize[dayIndex+1].push( msize * results['throughput:'][i])
-						msize_v_cpu[dayIndex+1].push( results['cpu:'][i])
-						mrecv_v_msize[dayIndex+1].push( results['throughput:'][i])
-					})
-					initCols = false;
-				}
-			})
-			return {throughput: bytes_v_msize, cpu: msize_v_cpu, persec: mrecv_v_msize};
+		var client_override = function (o) {
+			if (typeof o === 'object') {
+				if (angular.isDefined(o[client]))
+					o = o[client]
+				else if (angular.isDefined(o['default']))
+					o = o['default']
+				else
+					o = 'undefined'
+			}
+			return o;
 		}
-
-		// create the p2p_soak charts
-		var p2p_soak_charts = function (latency) {
+		var json_chart = function (charts, xaxis) {
+			var xColumn = client_override(xaxis.column);
+			var divisor = 1;
+			if (angular.isDefined(xaxis.divisor))
+				divisor = client_override(xaxis.divisor)
 			var columns = [];
-			var thr = [];
-			var cpu = [];
-			var rss = [];
-			var lat = [];
-
 			columns[0] = ['x'];
-			lat[0] = rss[0] = thr[0] = cpu[0] = columns[0];
 
-			// for each date in allSamples
+			var values = [];
+			charts.forEach(function (chart, i) {
+				values[i] = [];
+				values[i][0] = columns[0];
+			})
 			var initCols = true;
-			var dayIndex = 0;
-			allSamples.forEach (function (daySample) {
-				if (latency == daySample.latency) {
-					var date = daySample.date;
-					var results = daySample.results;
-					var subDate = date.toDateString().substr(4);
-					if (latency) {
-						lat[dayIndex+1] = [subDate];
-					} else {
-						thr[dayIndex+1] = [subDate];
-						cpu[dayIndex+1] = [subDate];
-						rss[dayIndex+1] = [subDate];
+			allSamples.forEach ( function (daySample, dayIndex) {
+				var date = daySample.date;
+				var results = daySample.results;
+				var subDate = date.toDateString().substr(4);
+				charts.forEach(function (chart, i) {
+					values[i][dayIndex+1] = [subDate];
+				})
+				results.forEach( function (result) {
+					if (initCols) {
+						if (angular.isDefined(result[xColumn]))
+							columns[0].push ( result[xColumn] / divisor )
 					}
-					var colKey = results['recv_msgs:'] ? 'recv_msgs:' : 'send_msgs:';
-					if (results[colKey]) {
-						results[colKey].forEach( function (msgs, i) {
-							// initialize the x axis values
-							if (initCols)
-								columns[0].push( msgs / 1000000)
-							if (latency) {
-								lat[dayIndex+1].push( results['latency:'][i] )
-							} else {
-								thr[dayIndex+1].push( results['throughput:'][i] )
-								cpu[dayIndex+1].push( Math.min(parseFloat(results['cpu:'][i]), 100) )
-								rss[dayIndex+1].push( results['rss:'][i] )
-							}
-						})
-					}
-					initCols = false;
-					++dayIndex;
-				}
-			})
-			return {throughput: thr, cpu: cpu, rss: rss, latency: lat};
-		}
-
-		// create the message_size charts
-		var router1_charts = function () {
-			var columns = [];
-			var bytes_v_pairs = [];
-
-			columns[0] = ['x'];
-			bytes_v_pairs[0] = columns[0];
-
-			// for each date in allSamples
-			var initCols = true;
-			allSamples.forEach (function (daySample, dayIndex) {
-				if (!daySample.latency) {
-					var date = daySample.date;
-					var results = daySample.results;
-					var subDate = date.toDateString().substr(4);
-					bytes_v_pairs[dayIndex+1] = [subDate];
-					results['snd_rcv_pairs:'].forEach( function (msize, i) {
-						// initialize the x axis values
-						if (initCols)
-							columns[0].push( msize )
-						bytes_v_pairs[dayIndex+1].push( results['throughput:'][i])
+					charts.forEach( function (chart, i) {
+						if (chart.column1) {
+							values[i][dayIndex+1].push( result[chart.column1] * result[chart.column2] )
+						} else {
+							var column = client_override(chart.column)
+							if (angular.isDefined(result[column]))
+								values[i][dayIndex+1].push( result[column] )
+						}
 					})
-					initCols = false;
-				}
+				})
+				initCols = false;
 			})
-			return {throughput: bytes_v_pairs};
+			var ret = {};
+			charts.forEach ( function (chart, i) {
+				ret[chart.id] = values[i]
+			})
+			return ret;
+
 		}
 
-		if (test === 'router_1') {
-			var columns = router1_charts();
-			console.log(JSON.stringify(columns));
+		var meta = descriptions[test];
+		var columns = json_chart(meta.charts, meta.axis.x)
 
-			var chartDefs = {
-				throughput: {title: 'Messages per second vs send/receive pairs', yLabel: 'Messages per second', format: 's'}
-			}
-			var tickVals = [1, 2, 3, 4, 5, 6, 7];
-			var xLabel = 'Number of sender/receiver pairs';
-			var tipCallback = function (d) {
-				return 'Number of pairs: ' + d3.format('')(d)
-			}
-			Object.keys(chartDefs).forEach( function (key) {
-				chartDefs[key]['xLabel'] = xLabel;
-				chartDefs[key]['id'] = key;
-				chartDefs[key]['columns'] = columns[key];
-				chartDefs[key]['tickVals'] = tickVals;
-				chartDefs[key]['callback'] = tipCallback;
-				decorateChartDef(chartDefs[key], key, language, test, client, date);
-			})
-
-			if (measurement) {
-				pushTo.push(chartDefs[measurement])
-			} else {
-				pushTo.push(chartDefs.throughput);
-			}
+		var tipCallback = function (d) {
+			var val = d
+			if (meta.tooltip.format != "")
+				val = d3.format(meta.tooltip.format)(d)
+			return client_override(meta.tooltip.pre) + val + client_override(meta.tooltip.post);
 		}
 
-		if (test === 'message_size') {
-			var columns = message_size_charts();
-			console.log(JSON.stringify(columns));
-
-			var chartDefs = {
-				throughput: {title: 'Bytes per second vs message size', yLabel: 'Bytes per second', format: 's'},
-				cpu:        {title: 'CPU usage vs message size', yLabel: 'CPU Usage (percent)', format: 's'},
-				persec:     {title: 'Messages received per second vs message size', yLabel: 'Messages per second', format: '.3s'}
-			}
-			var tickVals = [0, 10000, 20000, 30000, 40000, 50000, 60000, 70000, 80000, 90000, 100000];
-			var xLabel = 'Message size (bytes)';
-			var tipCallback = function (d) {
-				return 'Message size: ' + d3.format('.2s')(d) + ' bytes'
-			}
-			Object.keys(chartDefs).forEach( function (key) {
-				chartDefs[key]['xLabel'] = xLabel;
-				chartDefs[key]['id'] = key;
-				chartDefs[key]['columns'] = columns[key];
-				chartDefs[key]['tickVals'] = tickVals;
-				chartDefs[key]['callback'] = tipCallback;
-				decorateChartDef(chartDefs[key], key, language, test, client, date);
+		var measureChart = null
+		meta.charts.forEach (function (chart) {
+			chart.c3 = undefined;   // remove any prior generated chart
+			chart.xLabel = client_override(meta.axis.x.label);
+			chart.columns = columns[chart.id];
+			chart.tickVals = angular.isDefined(meta.axis.x.ticks) ? meta.axis.x.ticks : null;
+			chart.callback = tipCallback;
+			decorateChartDef(chart, chart.id, language, test, client, date);
+			if (chart.id === measurement)
+				measureChart = chart
+		})
+		if (measurement && measureChart) {
+			pushTo.push (measureChart)
+		} else {
+			meta.clients[client].forEach( function (graph) {
+				pushTo.push(meta.charts.filter(function (chart) {
+					return chart.id === graph
+				})[0])
 			})
-
-			if (client === 'receiver') {
-				if (measurement) {
-					pushTo.push(chartDefs[measurement])
-				} else {
-					pushTo.push(chartDefs.throughput);
-					pushTo.push(chartDefs.cpu);
-					pushTo.push(chartDefs.persec);
-				}
-			} else if (client === 'sender') {
-				if (measurement) {
-					pushTo.push(chartDefs[measurement])
-				} else {
-					pushTo.push(chartDefs.cpu);
-				}
-			}
 		}
-
-		if (test === 'p2p_soak') {
-			var columns = p2p_soak_charts(false);
-			var lcolumns = p2p_soak_charts(true);
-			console.log(JSON.stringify(columns));
-			console.log(JSON.stringify(lcolumns));
-
-			var chartDefs = {
-				throughput: {title: 'Throughput measured every million messages', yLabel: 'Messages per second', format: 's', dash: true},
-				cpu:        {title: 'CPU usage', yLabel: 'CPU usage (percent)', format: 's'},
-				rss:        {title: 'Memory usage', yLabel: 'Kilobytes', format: '.3s'},
-				latency:    {title: 'Latency averaged every million messages', yLabel: 'Latency (msec)', format: '.3s'},
-			}
-			var tickVals = [0, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-			var xLabel = 'Messages sent (millions)';
-			var tipCallback = function (d) {
-				return 'After ' + d + ' million messages'
-			}
-			Object.keys(chartDefs).forEach( function (key) {
-				chartDefs[key]['xLabel'] = xLabel;
-				chartDefs[key]['id'] = key;
-				chartDefs[key]['columns'] = key === 'latency' ? lcolumns[key] : columns[key];
-				chartDefs[key]['tickVals'] = tickVals;
-				chartDefs[key]['callback'] = tipCallback;
-				decorateChartDef(chartDefs[key], key, language, test, client, date);
-			})
-
-			if (client === 'receiver') {
-				if (measurement) {
-					pushTo.push(chartDefs[measurement])
-				} else {
-					pushTo.push(chartDefs.throughput);
-					pushTo.push(chartDefs.cpu);
-					pushTo.push(chartDefs.rss);
-					pushTo.push(chartDefs.latency);
-				}
-			} else if (client === 'sender') {
-				if (measurement) {
-					pushTo.push(chartDefs[measurement])
-				} else {
-					pushTo.push(chartDefs.throughput);
-					pushTo.push(chartDefs.cpu);
-					pushTo.push(chartDefs.rss);
-				}
-			}
-		}
-
 	}
 
 	$scope.translateId = function (id) {
@@ -572,10 +432,10 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
         $scope.status.opened = true;
     };
 
-    // Disable weekend selection
+    // Disable any dates for which we don't have data
     $scope.disabled = function(date, mode) {
-		return false;
-        //return ( mode === 'day' && ( date.getDay() === 0 || date.getDay() === 6 ) );
+        var parts = dateParts(date);
+		return !results[parts[0]][parts[1]][parts[2]];
     };
 
     // options for the date popup
@@ -773,5 +633,25 @@ angular.module('qpid.proton.timings', ['ngAnimate', 'ui.bootstrap', 'ngStorage']
 	        }
 			$scope.alert = { type: 'danger', msg: msg };
         })
+
+	var descriptionFile = './results/descriptions.json';
+    $http({ method: 'GET', url: descriptionFile })
+        .then(function successCallback(response) {
+			descriptions = response.data;
+
+	    }, function errorCallback(response) {
+			var msg;
+			// if an exception was thrown, response will be the exception
+			if (response.stack) {
+				msg = "Unable to parse the descriptions file: " + descriptionFile + " " + response.message;
+	        } else {
+				msg = response.statusText + ': ' + descriptionFile;
+	        }
+			console.log( msg );
+        })
+	$scope.showDescription = function () {
+		if (descriptions && $scope.selectors.test.curVal && descriptions[$scope.selectors.test.curVal])
+			return descriptions[$scope.selectors.test.curVal].description
+	}
 
 });
